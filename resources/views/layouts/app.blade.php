@@ -72,8 +72,11 @@
             @endisset
 
             <!-- Page Content -->
+            <main class="flex-1">
+                {{ $slot }}
             </main>
         </div>
         <x-chat-icon />
+        @stack('scripts')
     </body>
 </html>
