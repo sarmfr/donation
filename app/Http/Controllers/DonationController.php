@@ -41,9 +41,17 @@ class DonationController extends Controller
         );
 
         if ($response && isset($response['success']) && $response['success'] === true) {
+            $reference = data_get($response, 'data.reference')
+                ?? data_get($response, 'data.transaction_reference')
+                ?? data_get($response, 'data.transactionRef')
+                ?? data_get($response, 'reference')
+                ?? data_get($response, 'transaction_reference')
+                ?? data_get($response, 'transactionRef');
+
             $donation->update([
-                'transaction_reference' => $response['data']['reference'] ?? null,
+                'transaction_reference' => $reference,
             ]);
+
             return redirect()->route('donation.success', ['campaign' => $validated['campaign_id']]);
         }
 

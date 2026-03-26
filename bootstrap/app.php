@@ -29,6 +29,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'mpesa/callback',
             'paynecta/callback',
+            'api/mpesa/callback',
+            'api/paynecta/callback',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

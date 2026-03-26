@@ -15,6 +15,11 @@ Route::post('/paynecta/callback', [\App\Http\Controllers\PaynectaCallbackControl
 Route::get('/paynecta/callback', function() {
     return response()->json(['message' => 'Paynecta callback endpoint is active. Expecting POST requests.'], 200);
 });
+Route::post('/api/mpesa/callback', [\App\Http\Controllers\MpesaCallbackController::class, 'handle']);
+Route::post('/api/paynecta/callback', [\App\Http\Controllers\PaynectaCallbackController::class, 'handle']);
+Route::get('/api/paynecta/callback', function() {
+    return response()->json(['message' => 'Paynecta callback endpoint is active. Expecting POST requests.'], 200);
+});
 
 Route::get('/dashboard', function () {
     $user = auth()->user();

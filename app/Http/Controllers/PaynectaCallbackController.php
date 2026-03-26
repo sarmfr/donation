@@ -17,15 +17,26 @@ class PaynectaCallbackController extends Controller
 
         $payload = $request->all();
 
-        // Extract the reference and status
-        // Based on typical webhook structures, we expect a 'reference' or 'transactionRef'
-        // and a 'status' or 'success' flag.
-        $reference = $payload['reference'] ?? ($payload['data']['reference'] ?? null);
-        $status = $payload['status'] ?? ($payload['data']['status'] ?? null);
-        
+        $reference = data_get($payload, 'reference')
+            ?? data_get($payload, 'transaction_reference')
+            ?? data_get($payload, 'transactionRef')
+            ?? data_get($payload, 'data.reference')
+            ?? data_get($payload, 'data.transaction_reference')
+            ?? data_get($payload, 'data.transactionRef')
+            ?? data_get($payload, 'data.payment.reference');
+
+        $status = data_get($payload, 'status')
+            ?? data_get($payload, 'data.status')
+            ?? data_get($payload, 'data.payment.status');
+
+        $status = is_string($status) ? strtolower(trim($status)) : null;
+
         Log::info("Processing Paynecta Webhook: Ref={$reference}, Status={$status}");
-        
-        $isSuccess = ($status === 'success' || $status === 'completed' || ($payload['success'] ?? false) === true);
+
+        $isSuccess = in_array($status, ['success', 'completed', 'complete', 'paid', 'approved'], true)
+            || (($payload['success'] ?? false) === true)
+            || ((int) data_get($payload, 'result_code', -1) === 0)
+            || ((int) data_get($payload, 'data.result_code', -1) === 0);
 
         if (!$reference) {
             Log::error('Paynecta Webhook Error: Missing transaction reference.', $payload);
@@ -39,16 +50,24 @@ class PaynectaCallbackController extends Controller
             return response()->json(['message' => 'Donation not found'], 404);
         }
 
+        if ($donation->status === 'success') {
+            return response()->json(['message' => 'Webhook already processed'], 200);
+        }
+
         if ($isSuccess) {
             $donation->update(['status' => 'success']);
             
             // Increment the campaign collected amount
-            $donation->campaign->increment('current_amount', $donation->amount);
+            if ($donation->wasChanged('status')) {
+                $donation->campaign->increment('current_amount', $donation->amount);
+            }
             
             Log::info("Paynecta Webhook: Donation #{$donation->id} marked as successful.");
         } else {
-            $donation->update(['status' => 'failed']);
-            Log::warning("Paynecta Webhook: Donation #{$donation->id} marked as failed. Status: {$status}");
+            $pendingStatuses = ['pending', 'processing', 'initiated', 'queued'];
+            $nextStatus = in_array((string) $status, $pendingStatuses, true) ? 'pending' : 'failed';
+            $donation->update(['status' => $nextStatus]);
+            Log::warning("Paynecta Webhook: Donation #{$donation->id} marked as {$nextStatus}. Status: {$status}");
         }
 
         return response()->json(['message' => 'Webhook processed successfully'], 200);

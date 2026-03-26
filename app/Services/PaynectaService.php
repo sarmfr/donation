@@ -40,6 +40,11 @@ class PaynectaService
         }
 
         try {
+            $callbackUrl = config('paynecta.callback_url');
+            if (blank($callbackUrl)) {
+                $callbackUrl = rtrim(config('app.url'), '/') . '/paynecta/callback';
+            }
+
             $response = Http::withHeaders([
                 'X-API-Key' => $this->apiKey,
                 'X-User-Email' => $this->userEmail,
@@ -49,6 +54,7 @@ class PaynectaService
                 'code' => $this->paymentCode,
                 'mobile_number' => $phone,
                 'amount' => $amount,
+                'callback_url' => $callbackUrl,
             ]);
 
             if ($response->failed()) {
