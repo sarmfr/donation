@@ -1,0 +1,5 @@
+name: donation
+app_id: da_nP7IptBUYrpr
+owner: samson
+package: .
+kind: wasmer.io/App.v0
