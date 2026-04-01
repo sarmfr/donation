@@ -13,6 +13,29 @@ class PaynectaCallbackController extends Controller
      */
     public function handle(Request $request)
     {
+        $secret = (string) config('paynecta.webhook_secret');
+        if ($secret !== '') {
+            $signature = $request->header('X-Paynecta-Signature')
+                ?? $request->header('X-Webhook-Signature')
+                ?? $request->header('X-Signature')
+                ?? $request->header('Paynecta-Signature');
+
+            if ($signature) {
+                $raw = $request->getContent();
+                $expected = hash_hmac('sha256', $raw, $secret);
+
+                if (! hash_equals($expected, $signature)) {
+                    Log::warning('Paynecta Webhook Signature Mismatch', [
+                        'provided' => $signature,
+                        'expected' => $expected,
+                    ]);
+                    return response()->json(['message' => 'Invalid signature'], 401);
+                }
+            } else {
+                Log::warning('Paynecta Webhook Missing Signature Header');
+            }
+        }
+
         Log::info('Paynecta Webhook Received', $request->all());
 
         $payload = $request->all();
