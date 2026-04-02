@@ -52,7 +52,10 @@ class DonationController extends Controller
                 'transaction_reference' => $reference,
             ]);
 
-            return redirect()->route('donation.success', ['campaign' => $validated['campaign_id']]);
+            return redirect()->route('donation.success', [
+                'campaign' => $validated['campaign_id'],
+                'reference' => $reference,
+            ]);
         }
 
         return redirect()->back()->with('error', 'Failed to initiate payment. Please try again.');
@@ -61,6 +64,7 @@ class DonationController extends Controller
     public function success(Request $request)
     {
         $campaign = \App\Models\Campaign::find($request->campaign);
-        return view('donations.success', compact('campaign'));
+        $reference = $request->query('reference');
+        return view('donations.success', compact('campaign', 'reference'));
     }
 }

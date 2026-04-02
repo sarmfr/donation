@@ -25,11 +25,14 @@
                 </p>
 
                 <div class="space-y-4 mb-10">
-                    <div class="inline-flex items-center gap-3 px-6 py-3 bg-white/60 rounded-2xl border border-white shadow-sm ring-1 ring-slate-100">
-                        <span class="flex h-2 w-2 rounded-full bg-green-500 animate-ping"></span>
-                        <span class="text-xs font-black uppercase tracking-widest text-slate-500">Awaiting Confirmation</span>
+                    <div id="donation-status-badge" class="inline-flex items-center gap-3 px-6 py-3 bg-white/60 rounded-2xl border border-white shadow-sm ring-1 ring-slate-100">
+                        <span id="donation-status-dot" class="flex h-2 w-2 rounded-full bg-green-500 animate-ping"></span>
+                        <span id="donation-status-text" class="text-xs font-black uppercase tracking-widest text-slate-500">Awaiting Confirmation</span>
                     </div>
-                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Your generosity is changing lives.</p>
+                    <p id="donation-status-subtext" class="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Your generosity is changing lives.</p>
+                    @if(!empty($reference))
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Reference: {{ $reference }}</p>
+                    @endif
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -85,4 +88,52 @@
             }());
         });
     </script>
+
+    @if(!empty($reference))
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const reference = @json($reference);
+                const statusUrl = "{{ route('donations.status') }}?reference=" + encodeURIComponent(reference);
+                const statusText = document.getElementById('donation-status-text');
+                const statusDot = document.getElementById('donation-status-dot');
+                const statusSubtext = document.getElementById('donation-status-subtext');
+
+                const updateUi = (status) => {
+                    if (status === 'success') {
+                        statusText.textContent = 'Payment Confirmed';
+                        statusSubtext.textContent = 'Thank you! Your donation has been recorded.';
+                        statusDot.classList.remove('animate-ping');
+                        statusDot.classList.remove('bg-green-500');
+                        statusDot.classList.add('bg-emerald-500');
+                    } else if (status === 'failed') {
+                        statusText.textContent = 'Payment Failed';
+                        statusSubtext.textContent = 'The payment was not completed. Please try again.';
+                        statusDot.classList.remove('animate-ping');
+                        statusDot.classList.remove('bg-green-500');
+                        statusDot.classList.add('bg-rose-500');
+                    } else {
+                        statusText.textContent = 'Awaiting Confirmation';
+                        statusSubtext.textContent = 'Your generosity is changing lives.';
+                    }
+                };
+
+                const poll = async () => {
+                    try {
+                        const res = await fetch(statusUrl, { cache: 'no-store' });
+                        if (!res.ok) return;
+                        const data = await res.json();
+                        updateUi(data.status);
+                        if (data.status === 'success' || data.status === 'failed') {
+                            return;
+                        }
+                    } catch (e) {
+                        // keep polling silently
+                    }
+                    setTimeout(poll, 5000);
+                };
+
+                poll();
+            });
+        </script>
+    @endif
 </x-app-layout>

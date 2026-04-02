@@ -10,6 +10,7 @@ Route::get('/campaigns/{campaign}', [CampaignController::class, 'show'])->name('
 Route::get('/impact', [CampaignController::class, 'impact'])->name('impact');
 Route::post('/donate', [DonationController::class, 'store'])->middleware('throttle:10,1')->name('donate');
 Route::get('/donation/success', [DonationController::class, 'success'])->name('donation.success');
+Route::get('/donations/status', [\App\Http\Controllers\DonationStatusController::class, 'show'])->name('donations.status');
 Route::post('/mpesa/callback', [\App\Http\Controllers\MpesaCallbackController::class, 'handle'])->name('mpesa.callback');
 Route::post('/paynecta/callback', [\App\Http\Controllers\PaynectaCallbackController::class, 'handle'])->name('paynecta.callback');
 Route::get('/paynecta/callback', function() {
